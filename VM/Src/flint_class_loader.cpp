@@ -294,19 +294,28 @@ ClassLoader *ClassLoader::load(Flint *flint, FExec *ctx, const char *clsName, ui
 
     if(FindInZip(flint, ctx, clsName, length, &zip))
         reader = &zip;
-    else
+    else {
+        flint->print("ClassLoader.load failed: class not found in jars: ");
+        flint->consoleWrite((uint8_t *)clsName, length);
+        flint->print(" len=");
+        flint->println((int64_t)length);
         return NULL;
-    if(!reader->open())
+    }
+    if(!reader->open()) {
+        flint->println("ClassLoader.load failed: open");
         return NULL;
+    }
     ClassLoader *loader = (ClassLoader *)flint->malloc(ctx, sizeof(ClassLoader));
-    if(loader == NULL) return NULL;
+    if(loader == NULL) { flint->println("ClassLoader.load failed: alloc"); return NULL; }
     new (loader)ClassLoader(flint);
     if(loader->load(reader) == false) {
+        flint->println("ClassLoader.load failed: parse");
         loader->~ClassLoader();
         flint->free(loader);
         return NULL;
     }
     if(reader->close() == false) {
+        flint->println("ClassLoader.load failed: close");
         loader->~ClassLoader();
         flint->free(loader);
         return NULL;
@@ -711,7 +720,9 @@ void ClassLoader::clearStaticFields(void) {
 ClassLoader::~ClassLoader(void) {
     if(poolCount && poolTable) {
         for(uint32_t i = 0; i < poolCount; i++) {
-            switch(poolTable[i].tag) {
+            ConstPoolTag tag = (ConstPoolTag)(poolTable[i].tag & 0x7F);
+            bool resolved = (poolTable[i].tag & 0x80) != 0;
+            switch(tag) {
                 case CONST_UTF8:
                     break;
                 case CONST_FIELD:
@@ -719,14 +730,12 @@ ClassLoader::~ClassLoader(void) {
                 case CONST_INTERFACE_METHOD:
                 case CONST_NAME_AND_TYPE:
                 case CONST_INVOKE_DYNAMIC:
-                    flint->free((void *)poolTable[i].value);
+                case CONST_METHOD_HANDLE:
+                    if(resolved) flint->free((void *)poolTable[i].value);
                     break;
                 case CONST_LONG:
                 case CONST_DOUBLE:
                     i++;
-                    break;
-                case CONST_METHOD_HANDLE:
-                    flint->free((void *)poolTable[i].value);
                     break;
                 default:
                     break;

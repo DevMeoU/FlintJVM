@@ -2194,7 +2194,12 @@ void FExec::exec(bool initOpcodeLabels) {
             FExec::throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot read the array length from null object");
             goto exception_handler;
         }
-        stackPushInt32(obj->size / obj->type->componentSize());
+        uint8_t compSz = obj->type->componentSize();
+        if(compSz == 0) {
+            FExec::throwNew(flint->findClass(this, "java/lang/IncompatibleClassChangeError"));
+            goto exception_handler;
+        }
+        stackPushInt32(obj->size / compSz);
         pc++;
         goto *opcodes[code[pc]];
     }

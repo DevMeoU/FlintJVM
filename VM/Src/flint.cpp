@@ -916,6 +916,8 @@ static bool ReadManifest(Flint *flint, const char *jarPath, Manifest *manifest) 
                     buff[i] = '/';
             }
             uint32_t len = strnlen(&buff[idx], sizeof(buff) - idx);
+            while(len > 0 && (buff[idx + len - 1] == '\r' || buff[idx + len - 1] == '\n'))
+                len--;
             manifest->mainCls = flint->getUtf8(NULL, &buff[idx], len);
         }
     }
@@ -927,17 +929,20 @@ exit:
 
 bool Flint::start(void) {
     Manifest manifest = {};
-    if(program == NULL) return false;
-    if(!ReadManifest(this, program, &manifest)) return false;
+    if(program == NULL) { println("Flint.start failed: missing program"); return false; }
+    if(!ReadManifest(this, program, &manifest)) { println("Flint.start failed: manifest"); return false; }
     if(manifest.mainCls == NULL) manifest.mainCls = "Main";
 
     FExec *exec = Flint::newExecution(NULL);
-    if(exec == NULL) return false;
-    JClass *mainCls = Flint::findClass(NULL, manifest.mainCls);
-    if(mainCls == NULL) return false;
-    MethodInfo *mt = mainCls->getClassLoader()->getMainMethodInfo(NULL);
-    if(mt == NULL) return false;
-    return exec->run(mt, 1, NULL);
+    if(exec == NULL) { println("Flint.start failed: execution"); return false; }
+
+    JClass *mainClsObj = Flint::findClass(NULL, manifest.mainCls);
+    if(mainClsObj == NULL) { println("Flint.start failed: main class"); return false; }
+    MethodInfo *mt = mainClsObj->getClassLoader()->getMainMethodInfo(NULL);
+    if(mt == NULL) { println("Flint.start failed: main method"); return false; }
+    if(!exec->run(mt, 1, NULL)) { println("Flint.start failed: run"); return false; }
+    println("Flint.start ok");
+    return true;
 }
 
 bool Flint::isRunning(void) {
