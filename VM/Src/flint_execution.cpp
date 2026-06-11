@@ -2464,6 +2464,8 @@ void FExec::runTask(FExec *exec) {
             flint->println(msg);
         }
         flint->terminateRequest();
+        if(flint->getExitCode() == 0)
+            flint->setExitCode(1);
     }
     while(exec->startSp > 3) exec->restoreContext();
     exec->peakSp = -1;
@@ -2534,8 +2536,8 @@ void FExec::stopRequest(void) {
 }
 
 void FExec::terminateRequest(void) {
-    FlintAPI::Thread::notify(getOwnerThread()->getHandle(), -1);
     opcodes = opcodeLabelsExit;
+    FlintAPI::Thread::notify(getOwnerThread()->getHandle(), -1);
 }
 
 jbool FExec::hasTerminateRequest(void) {
