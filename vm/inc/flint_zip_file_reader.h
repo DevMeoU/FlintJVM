@@ -6,6 +6,9 @@
 
 class ZipFileReader : public FileReader {
 private:
+    uint16_t compressionMethod;
+    uint32_t compressedSize;
+    uint32_t uncompressedSize;
     bool gotoEOCD(void);
     int32_t gotoCDFH(void);
 public:
@@ -14,6 +17,9 @@ public:
 
     bool gotoFile(const char *name, uint16_t length = 0xFFFF);
     bool gotoClassFile(const char *name, uint16_t length = 0xFFFF);
+    uint16_t getCompressionMethod(void) const;
+    uint32_t getCompressedSize(void) const;
+    uint32_t getUncompressedSize(void) const;
 private:
     ZipFileReader(const ZipFileReader &) = delete;
     void operator=(const ZipFileReader &) = delete;

@@ -106,7 +106,7 @@ public:
     bool isObject(void *p);
     void gc(void);
 
-    bool start(void);
+    bool start(const char *mainClass = "Main", const char *argument = NULL);
 
     bool isRunning(void);
     void stopRequest(void);
